@@ -1,0 +1,106 @@
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    alias dir='dir --color=auto'
+    alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+alias ll='ls -alF --group-directories-first'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# Use colors for less, man, etc.
+export LESS="iR"
+if [ -a ~/.LESS_TERMCAP ]; then
+	. ~/.LESS_TERMCAP
+fi
+
+# bash-git-prompt configurations
+GIT_PROMPT_ONLY_IN_REPO=0
+GIT_PROMPT_FETCH_REMOTE_STATUS=0
+GIT_PROMPT_SHOW_UPSTREAM=1
+GIT_PROMPT_SHOW_UNTRACKED_FILES=all
+GIT_PROMPT_SHOW_CHANGED_FILES_COUNT=0
+#GIT_PROMPT_STATUS_COMMAND=gitstatus_pre-1.7.10.sh
+GIT_PROMPT_START="_LAST_COMMAND_INDICATOR_\[\033[0;0m\]"
+GIT_PROMPT_END=" $ "
+GIT_PROMPT_THEME=Solarized_Ubuntu
+
+function prompt_callback() {
+	gp_set_window_title "\u@\h: \w"
+}
+
+source ~/.bash-git-prompt/gitprompt.sh
+
+# start tmux if installed (on local machine only)
+if [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+	if which tmux >/dev/null 2>&1; then
+		# if no session is started, start a new session
+		test -z $TMUX && tmux -2
+
+		# attach other existing session when quite
+		while test -z $TMUX; do
+			tmux attach || break
+		done
+	fi
+fi
+
+function lms() {
+	docker run -d --rm --init \
+		   -p 9000:9000 \
+		   -p 9090:9090 \
+		   -p 3483:3483 \
+		   -p 3483:3483/udp \
+		   -v /etc/localtime:/etc/localtime:ro \
+		   -v ~/Music/state:/srv/squeezebox \
+		   -v ~/Music:/srv/music \
+		   larsks/logitech-media-server
+
+	sleep 2
+
+	firefox --new-tab localhost:9000
+}
